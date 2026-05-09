@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="script-src 'self'; object-src 'self'"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="bg-animation">
+      <div class="bg-circle"></div>
+      <div class="bg-circle"></div>
+      <div class="bg-circle"></div>
+    </div>
+
+    <div class="container">
+      <div class="header">
+        <div class="logo-container">
+          <div class="logo-ring"></div>
+          <div class="logo-ring"></div>
+          <div class="logo">
+            <img src="icon.png" alt="Logo" width="110" height="110" />
+          </div>
+        </div>
+        <div class="brand-name">WebShield.AI</div>
+      </div>
+
+      <div class="status-container">
+        <div class="status-dot"></div>
+        <span class="status-text">Connected...</span>
+      </div>
+
+      <div class="info-text">Know which site is safe or phishy</div>
+
+      <div class="visual-section">
+        <div class="circle-container active" id="circleContainer">
+          <div class="outer-glow"></div>
+
+          <!-- Orbital Rings with Network Nodes -->
+          <div class="ring ring-1">
+            <div class="network-node node-1"></div>
+            <div class="network-node node-2"></div>
+            <div class="network-node node-3"></div>
+            <div class="network-node node-4"></div>
+          </div>
+          <div class="ring ring-2"></div>
+
+          <!-- Icon Container -->
+          <div class="icon-container" id="iconContainer">
+            <!-- Connection Lines -->
+            <div class="connection-line connection-1"></div>
+            <div class="connection-line connection-2"></div>
+            <div class="connection-line connection-3"></div>
+            <div class="connection-line connection-4"></div>
+
+            <!-- Globe Base (for idle, analyzing and phishing states) -->
+            <div class="globe-base" id="globeBase">
+              <div class="globe-grid" id="globeGrid">
+                <div class="grid-line grid-horizontal" style="top: 25%"></div>
+                <div class="grid-line grid-horizontal" style="top: 50%"></div>
+                <div class="grid-line grid-horizontal" style="top: 75%"></div>
+                <div class="grid-line grid-vertical" style="left: 25%"></div>
+                <div class="grid-line grid-vertical" style="left: 50%"></div>
+                <div class="grid-line grid-vertical" style="left: 75%"></div>
+              </div>
+            </div>
+
+            <!-- Globe Image (for analyzing state) -->
+            <img
+              class="globe-image"
+              id="globeImage"
+              src="globe.png"
+              alt="Globe"
+              style="object-fit: contain; z-index: 5"
+            />
+
+            <!-- Shield Image -->
+            <img
+              class="shield-image"
+              id="shieldImage"
+              src="shield.png"
+              alt="Shield"
+              style="display: none"
+            />
+
+            <!-- Lock Icon (Idle & Analyzing State) -->
+            <svg
+              class="lock-icon"
+              id="lockIcon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#4dd4d4"
+              stroke-width="2"
+            >
+              <rect x="5" y="11" width="14" height="10" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+
+            <!-- Safe State - Green Shield with Lock -->
+            <div class="safe-shield-container" id="safeShield">
+              <svg class="shield-svg" viewBox="0 0 100 100">
+                <defs>
+                  <linearGradient
+                    id="greenShield"
+                    x1="0%"
+                    y1="0%"
+                    x2="0%"
+                    y2="100%"
+                  >
+                    <stop offset="0%" style="stop-color: #22c55e" />
+                    <stop offset="100%" style="stop-color: #15803d" />
+                  </linearGradient>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                    <feMerge>
+                      <feMergeNode in="coloredBlur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+
+                <!-- Shield Body -->
+                <path
+                  class="shield-path"
+                  d="M50 10 L20 25 L20 50 Q20 70, 50 90 Q80 70, 80 50 L80 25 Z"
+                  fill="url(#greenShield)"
+                  stroke="#fff"
+                  stroke-width="2"
+                  filter="url(#glow)"
+                />
+
+                <!-- Shield Inner Glow -->
+                <path
+                  d="M50 20 L30 32 L30 52 Q30 65, 50 78 Q70 65, 70 52 L70 32 Z"
+                  fill="rgba(255,255,255,0.2)"
+                  opacity="0.5"
+                />
+
+                <!-- Lock Body -->
+                <rect
+                  class="lock-body-safe"
+                  x="40"
+                  y="50"
+                  width="20"
+                  height="18"
+                  rx="2"
+                  fill="#fff"
+                  filter="url(#glow)"
+                />
+
+                <!-- Lock Shackle -->
+                <path
+                  d="M43 50 Q43 42, 50 42 Q57 42, 57 50"
+                  fill="none"
+                  stroke="#fff"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  filter="url(#glow)"
+                />
+
+                <!-- Lock Keyhole -->
+                <circle cx="50" cy="57" r="2.5" fill="#22c55e" />
+                <rect x="48.5" y="57" width="3" height="5" fill="#22c55e" />
+
+                <!-- Shield Shine Effect -->
+                <path
+                  class="shield-shine"
+                  d="M50 20 L30 32 L30 52 Q30 65, 50 78 Q70 65, 70 52 L70 32 Z"
+                  fill="rgba(255,255,255,0.3)"
+                  opacity="0"
+                />
+              </svg>
+            </div>
+
+            <!-- Warning Icon (Phishing State) -->
+            <svg
+              class="warning-icon"
+              id="warningIcon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#ff4444"
+              stroke-width="2"
+            >
+              <path
+                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+              ></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+
+            <!-- Scanning Line -->
+            <div class="scanning-line" id="scanningLine"></div>
+          </div>
+        </div>
+
+        <button class="action-button" id="actionButton">Check Your Site</button>
+
+        <div class="status-display" id="statusDisplay"></div>
+      </div>
+    </div>
+
+    <div class="watermark">Created by Adhithyan.S</div>
+    <script src="popup.js"></script>
+  </body>
+</html>
