@@ -12,8 +12,9 @@ detector = PhishingDetector(use_ml=True)
 
 @app.route("/", methods=["POST"])
 def analyze():
-    url = request.form.get("url", "").strip()
-    html = request.form.get("html", "").strip()
+    data = request.get_json(silent=True) or {}
+    url = data.get("url", "").strip()
+    html = data.get("html", "").strip()
 
     if not url:
         return "⚠️ Missing URL parameter", 400

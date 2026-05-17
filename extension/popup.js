@@ -1,5 +1,5 @@
 // popup.js - WebShield.AI Extension Logic
-const BACKEND_URL = "https://your-app-name.onrender.com"; // Replace after deploying
+const BACKEND_URL = "http://localhost:8000"; // Replace after deploying
 
 let currentState = "idle";
 
@@ -114,14 +114,14 @@ function analyzeWebsite() {
               console.log(
                 `Retry ${4 - retries} due to ${
                   chrome.runtime.lastError.message
-                }`
+                }`,
               );
               setTimeout(() => sendMessageWithRetry(retries - 1), 500);
             } else {
               console.error("Final error:", chrome.runtime.lastError);
               setState(
                 "error",
-                "Failed to communicate with content script. Please refresh the page and try again."
+                "Failed to communicate with content script. Please refresh the page and try again.",
               );
             }
             return;
@@ -130,42 +130,32 @@ function analyzeWebsite() {
           if (!response || !response.success) {
             setState(
               "error",
-              response ? response.error : "No response from content script"
+              response ? response.error : "No response from content script",
             );
             return;
           }
 
           const pageHTML = response.html;
+          const MAX_HTML_SIZE = 500000;
+          const trimmedHTML =
+            pageHTML.length > MAX_HTML_SIZE
+              ? pageHTML.slice(0, MAX_HTML_SIZE)
+              : pageHTML;
 
-          // 60s timeout to handle Render free-tier cold start (~30s wake-up)
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-          // Show wake-up hint after 5s with no response
-          const wakeUpHint = setTimeout(() => {
-            const statusDisplay = document.getElementById("statusDisplay");
-            if (statusDisplay) {
-              statusDisplay.innerHTML =
-                '<div class="analyzing-text"><span>Waking server...</span><div class="spinner"></div></div>';
-            }
-          }, 5000);
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
 
           fetch(BACKEND_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body:
-              "url=" +
-              encodeURIComponent(url) +
-              "&html=" +
-              encodeURIComponent(pageHTML),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: url, html: trimmedHTML }),
             signal: controller.signal,
           })
             .then((response) => {
-              clearTimeout(wakeUpHint);
               clearTimeout(timeoutId);
               if (!response.ok) {
                 throw new Error(
-                  "Server responded with status: " + response.status
+                  "Server responded with status: " + response.status,
                 );
               }
               return response.text();
@@ -180,18 +170,15 @@ function analyzeWebsite() {
               }
             })
             .catch((error) => {
-              clearTimeout(wakeUpHint);
               clearTimeout(timeoutId);
               console.error("Fetch error:", error);
-              const msg = error.name === "AbortError"
-                ? "Server took too long to respond. Try again in a moment."
-                : "Server connection failed. Error: " + error.message;
-              setState(
-                "error",
-                msg
-              );
+              const msg =
+                error.name === "AbortError"
+                  ? "Server took too long to respond. Try again in a moment."
+                  : "Server connection failed. Error: " + error.message;
+              setState("error", msg);
             });
-        }
+        },
       );
     }
 
