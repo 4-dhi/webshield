@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Abhijith\\\\Downloads\\\\adhi\\\\AIPHISH\" -Recurse -Force)",
+      "Bash(Select-Object -Property FullName)",
+      "Bash(ConvertTo-Csv -NoTypeInformation)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(findstr *)",
+      "Bash(Powershell *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Abhijith\\\\Downloads\\\\adhi\\\\AIPHISH\" -Recurse -File)",
+      "Bash(Select-Object FullName)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Abhijith\\\\Downloads\\\\adhi\\\\AIPHISH\" -Recurse -File | Where-Object { $_.Extension -match \"\\\\.\\(py|txt|yaml|json|js|html|css|sh\\)$\" } | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\Abhijith\\\\Downloads\\\\adhi\\\\AIPHISH\\\\\",\"\"\\) } | Sort-Object)"
+    ]
+  }
+}

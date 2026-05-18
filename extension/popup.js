@@ -1,10 +1,12 @@
-// popup.js - WebShield.AI Extension Logic
-const BACKEND_URL = "http://localhost:8000"; // Replace after deploying
+// WebShield.AI v2 — Extension popup logic
+// The extension now sends only the URL; the backend fetches and analyses the page itself.
+const BACKEND_URL = "http://localhost:8000"; // ← update after deploying
 
 let currentState = "idle";
 
-function setState(state, message = "") {
+function setState(state, message = "", data = {}) {
   currentState = state;
+
   const container = document.getElementById("circleContainer");
   const button = document.getElementById("actionButton");
   const statusDisplay = document.getElementById("statusDisplay");
@@ -12,35 +14,57 @@ function setState(state, message = "") {
   const warningIcon = document.getElementById("warningIcon");
   const iconContainer = document.getElementById("iconContainer");
   const safeShield = document.getElementById("safeShield");
-
   const globeImage = document.getElementById("globeImage");
   const shieldImage = document.getElementById("shieldImage");
   const globeBase = document.getElementById("globeBase");
+  const confidenceWrap = document.getElementById("confidenceWrap");
+  const confidenceFill = document.getElementById("confidenceFill");
+  const confidenceLabel = document.getElementById("confidenceLabel");
+  const flagsList = document.getElementById("flagsList");
 
-  // Reset all classes and visibility
+  // ── Reset all state ──────────────────────────────────────────────────────
   container.className = "circle-container active";
   statusDisplay.innerHTML = "";
   iconContainer.classList.remove("scanning");
   lockIcon.style.display = "none";
   warningIcon.classList.remove("show");
   warningIcon.style.display = "none";
+  warningIcon.setAttribute("stroke", "#ff4444");
   safeShield.classList.remove("show");
   safeShield.style.display = "none";
   globeImage.style.display = "none";
   shieldImage.style.display = "none";
   globeBase.style.display = "block";
+  confidenceWrap.style.display = "none";
+  flagsList.style.display = "none";
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function showConfidence(score, gradient) {
+    confidenceWrap.style.display = "block";
+    confidenceFill.style.width = score + "%";
+    confidenceFill.style.background = gradient;
+    confidenceLabel.textContent = score + "% risk score";
+  }
+
+  function showFlags(flags) {
+    if (!flags || flags.length === 0) return;
+    flagsList.style.display = "block";
+    flagsList.innerHTML = flags
+      .slice(0, 3)
+      .map((f) => `<li>${f}</li>`)
+      .join("");
+  }
+
+  // ── States ────────────────────────────────────────────────────────────────
   switch (state) {
     case "idle":
       shieldImage.style.display = "block";
-      lockIcon.style.display = "none";
       button.textContent = "Check Your Site";
       button.disabled = false;
       break;
 
     case "analyzing":
       iconContainer.classList.add("scanning");
-      lockIcon.style.display = "none";
       globeImage.style.display = "block";
       globeBase.style.display = "none";
       button.disabled = true;
@@ -50,27 +74,49 @@ function setState(state, message = "") {
 
     case "safe":
       container.classList.add("safe-state");
-      // Hide globe and show shield
       setTimeout(() => {
         safeShield.style.display = "block";
         safeShield.classList.add("show");
       }, 300);
-
       statusDisplay.innerHTML =
         '<div class="result-text safe-result">SAFE</div>';
       button.textContent = "Check Again";
       button.disabled = false;
+      showConfidence(
+        data.score || 5,
+        "linear-gradient(90deg, #22c55e, #15803d)",
+      );
+      break;
+
+    case "suspicious":
+      container.classList.add("suspicious-state");
+      warningIcon.setAttribute("stroke", "#f59e0b");
+      warningIcon.style.display = "block";
+      warningIcon.classList.add("show");
+      statusDisplay.innerHTML =
+        '<div class="result-text suspicious-result">SUSPICIOUS</div>';
+      button.textContent = "Check Again";
+      button.disabled = false;
+      showConfidence(
+        data.score || 50,
+        "linear-gradient(90deg, #f59e0b, #d97706)",
+      );
+      showFlags(data.flags);
       break;
 
     case "phishing":
       container.classList.add("phishing-state");
-      lockIcon.style.display = "none";
       warningIcon.style.display = "block";
       warningIcon.classList.add("show");
       statusDisplay.innerHTML =
         '<div class="result-text phishing-result">PHISHING</div>';
       button.textContent = "Check Again";
       button.disabled = false;
+      showConfidence(
+        data.score || 80,
+        "linear-gradient(90deg, #ff4444, #cc0000)",
+      );
+      showFlags(data.flags);
       break;
 
     case "error":
@@ -91,8 +137,7 @@ function analyzeWebsite() {
       return;
     }
 
-    const tab = tabs[0];
-    const url = tab.url;
+    const url = tabs[0].url;
 
     if (
       url.startsWith("chrome://") ||
@@ -100,118 +145,91 @@ function analyzeWebsite() {
       url.startsWith("edge://") ||
       url.startsWith("about:")
     ) {
-      setState("error", "Cannot analyze system pages");
+      setState("error", "Cannot analyse browser system pages");
       return;
     }
 
-    function sendMessageWithRetry(retries = 3) {
-      chrome.tabs.sendMessage(
-        tab.id,
-        { action: "getPageHTML" },
-        function (response) {
-          if (chrome.runtime.lastError) {
-            if (retries > 0) {
-              console.log(
-                `Retry ${4 - retries} due to ${
-                  chrome.runtime.lastError.message
-                }`,
-              );
-              setTimeout(() => sendMessageWithRetry(retries - 1), 500);
-            } else {
-              console.error("Final error:", chrome.runtime.lastError);
-              setState(
-                "error",
-                "Failed to communicate with content script. Please refresh the page and try again.",
-              );
-            }
-            return;
-          }
+    const controller = new AbortController();
+    // 30s to handle Render free-tier cold start (no "waking" UI — just waits silently)
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-          if (!response || !response.success) {
-            setState(
-              "error",
-              response ? response.error : "No response from content script",
-            );
-            return;
-          }
+    fetch(BACKEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+      signal: controller.signal,
+    })
+      .then((response) => {
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+          throw new Error("Server responded with status: " + response.status);
+        }
+        return response.text();
+      })
+      .then((raw) => {
+        let verdict, score, flags;
 
-          const pageHTML = response.html;
-          const MAX_HTML_SIZE = 500000;
-          const trimmedHTML =
-            pageHTML.length > MAX_HTML_SIZE
-              ? pageHTML.slice(0, MAX_HTML_SIZE)
-              : pageHTML;
+        // Try new JSON format first, then fall back to legacy plain-text
+        try {
+          const json = JSON.parse(raw);
+          verdict = json.verdict;
+          score = json.score;
+          flags = json.flags || [];
+        } catch {
+          verdict = raw.includes("PHISHING")
+            ? "PHISHING"
+            : raw.includes("SAFE")
+              ? "SAFE"
+              : null;
+          score = verdict === "PHISHING" ? 80 : verdict === "SAFE" ? 10 : 50;
+          flags = [];
+        }
 
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-          fetch(BACKEND_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url: url, html: trimmedHTML }),
-            signal: controller.signal,
-          })
-            .then((response) => {
-              clearTimeout(timeoutId);
-              if (!response.ok) {
-                throw new Error(
-                  "Server responded with status: " + response.status,
-                );
-              }
-              return response.text();
-            })
-            .then((data) => {
-              if (data.includes("SAFE")) {
-                setState("safe");
-              } else if (data.includes("PHISHING")) {
-                setState("phishing");
-              } else {
-                setState("error", "Unknown server response: " + data);
-              }
-            })
-            .catch((error) => {
-              clearTimeout(timeoutId);
-              console.error("Fetch error:", error);
-              const msg =
-                error.name === "AbortError"
-                  ? "Server took too long to respond. Try again in a moment."
-                  : "Server connection failed. Error: " + error.message;
-              setState("error", msg);
-            });
-        },
-      );
-    }
-
-    sendMessageWithRetry();
+        if (verdict === "SAFE") setState("safe", "", { score, flags });
+        else if (verdict === "SUSPICIOUS")
+          setState("suspicious", "", { score, flags });
+        else if (verdict === "PHISHING")
+          setState("phishing", "", { score, flags });
+        else setState("error", "Unexpected response from server");
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        const msg =
+          error.name === "AbortError"
+            ? "Server took too long. Try again in a moment."
+            : "Server connection failed. Error: " + error.message;
+        setState("error", msg);
+      });
   });
 }
 
-// Initialize when DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
-  // Display current URL
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    if (tabs && tabs.length > 0) {
-      let displayURL = tabs[0].url;
-      if (displayURL.length > 45) {
-        displayURL = displayURL.slice(0, 45) + "...";
-      }
-      const urlDisplayElement = document.getElementById("urlDisplay");
-      if (urlDisplayElement) {
-        urlDisplayElement.textContent = displayURL;
-      }
-    } else {
-      const urlDisplayElement = document.getElementById("urlDisplay");
-      if (urlDisplayElement) {
-        urlDisplayElement.textContent = "URL not available";
-      }
-    }
-  });
-
-  // Add button click handler
-  document
-    .getElementById("actionButton")
-    .addEventListener("click", analyzeWebsite);
-
-  // Set initial state
   setState("idle");
+  document.getElementById("actionButton").addEventListener("click", analyzeWebsite);
+
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    const el = document.getElementById("urlDisplay");
+    if (!tabs || tabs.length === 0) {
+      if (el) el.textContent = "URL not available";
+      return;
+    }
+
+    const tab = tabs[0];
+    if (el) {
+      el.textContent = tab.url.length > 45 ? tab.url.slice(0, 45) + "..." : tab.url;
+    }
+
+    // Show background scanner's cached result instantly — no button click needed
+    chrome.storage.session.get(`scan_${tab.id}`, (data) => {
+      const cached = data[`scan_${tab.id}`];
+      if (!cached || cached.url !== tab.url) return;
+
+      if (cached.verdict === "SAFE")
+        setState("safe", "", { score: cached.score, flags: cached.flags });
+      else if (cached.verdict === "SUSPICIOUS")
+        setState("suspicious", "", { score: cached.score, flags: cached.flags });
+      else if (cached.verdict === "PHISHING")
+        setState("phishing", "", { score: cached.score, flags: cached.flags });
+    });
+  });
 });
