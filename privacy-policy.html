@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — WebShield.AI</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: linear-gradient(160deg, #0f1120 0%, #1a1d2e 50%, #2d1f3f 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      line-height: 1.7;
+    }
+
+    /* ── Nav ── */
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 40px;
+      border-bottom: 1px solid rgba(77,212,212,0.15);
+      background: rgba(15,17,32,0.8);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 20px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #4dd4d4, #2a9d8f);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
+    }
+    .nav-badge {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(77,212,212,0.6);
+      border: 1px solid rgba(77,212,212,0.3);
+      border-radius: 20px;
+      padding: 2px 10px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 72px 24px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -80px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(77,212,212,0.08), transparent 70%);
+      pointer-events: none;
+    }
+    .hero-label {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #4dd4d4;
+      border: 1px solid rgba(77,212,212,0.4);
+      border-radius: 20px;
+      padding: 4px 16px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 900;
+      background: linear-gradient(135deg, #fff 0%, #4dd4d4 60%, #2a9d8f 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+      line-height: 1.2;
+    }
+    .hero-sub {
+      font-size: 17px;
+      color: rgba(255,255,255,0.5);
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .updated {
+      margin-top: 16px;
+      font-size: 13px;
+      color: rgba(77,212,212,0.5);
+    }
+
+    /* ── Layout ── */
+    .content {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* ── TL;DR card ── */
+    .tldr {
+      background: linear-gradient(135deg, rgba(77,212,212,0.08), rgba(42,157,143,0.05));
+      border: 1px solid rgba(77,212,212,0.25);
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 52px;
+    }
+    .tldr-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #4dd4d4;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+    .tldr ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .tldr li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.85);
+    }
+    .tldr li::before {
+      content: '✓';
+      color: #4dd4d4;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── Sections ── */
+    section {
+      margin-bottom: 44px;
+    }
+    h2 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: #4dd4d4;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(77,212,212,0.15);
+    }
+    p {
+      font-size: 15px;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 12px;
+    }
+    ul.body-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    ul.body-list li {
+      font-size: 15px;
+      color: rgba(255,255,255,0.7);
+      padding-left: 20px;
+      position: relative;
+    }
+    ul.body-list li::before {
+      content: '▸';
+      color: #4dd4d4;
+      position: absolute;
+      left: 0;
+      font-size: 12px;
+      top: 2px;
+    }
+
+    /* ── Data table ── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: rgba(77,212,212,0.08);
+      color: #4dd4d4;
+      font-weight: 700;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid rgba(77,212,212,0.2);
+    }
+    .data-table td {
+      padding: 10px 14px;
+      color: rgba(255,255,255,0.7);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .tag-no  { color: #ef4444; font-weight: 700; }
+    .tag-yes { color: #22c55e; font-weight: 700; }
+    .tag-local { color: #f59e0b; font-weight: 700; }
+
+    /* ── Highlight box ── */
+    .highlight {
+      background: rgba(239,68,68,0.06);
+      border-left: 3px solid #ef4444;
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 14px;
+      color: rgba(255,255,255,0.65);
+    }
+    .highlight.green {
+      background: rgba(34,197,94,0.06);
+      border-left-color: #22c55e;
+    }
+
+    /* ── Contact ── */
+    .contact-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 24px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .contact-card p { margin: 0; font-size: 15px; }
+    .contact-link {
+      display: inline-block;
+      background: linear-gradient(135deg, #4dd4d4, #2a9d8f);
+      color: #0f1120;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 10px 22px;
+      border-radius: 8px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .contact-link:hover { opacity: 0.9; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      font-size: 13px;
+      color: rgba(255,255,255,0.25);
+    }
+    footer span {
+      color: rgba(77,212,212,0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a class="nav-logo" href="#">WebShield.AI</a>
+    <span class="nav-badge">Privacy Policy</span>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-label">Transparency First</div>
+    <h1>Privacy Policy</h1>
+    <p class="hero-sub">We protect you from phishing. Here's exactly what we do — and don't do — with your data.</p>
+    <p class="updated">Last updated: May 18, 2026 &nbsp;·&nbsp; Version 2.1</p>
+  </div>
+
+  <div class="content">
+
+    <!-- TL;DR -->
+    <div class="tldr">
+      <div class="tldr-title">TL;DR — The Short Version</div>
+      <ul>
+        <li>We only ever see the URL of the page you're visiting — nothing else.</li>
+        <li>We never collect your name, email, IP address, or any personal information.</li>
+        <li>We never track your browsing history or build a profile of you.</li>
+        <li>Scan results are stored locally in your browser only, and cleared when you close the tab.</li>
+        <li>We do not sell, rent, or share your data with advertisers or any third party for commercial purposes.</li>
+      </ul>
+    </div>
+
+    <!-- 1. Overview -->
+    <section>
+      <h2>1. Overview</h2>
+      <p>
+        WebShield.AI ("the Extension", "we", "us") is a browser extension that automatically detects
+        phishing and malicious websites as you browse the web. This Privacy Policy explains what
+        information is transmitted when you use the Extension, how it is used, and what we will
+        never do with it.
+      </p>
+      <p>
+        By installing the Extension you agree to the practices described in this policy. If you do
+        not agree, you may uninstall the Extension at any time from your browser's extension manager.
+      </p>
+    </section>
+
+    <!-- 2. What we collect -->
+    <section>
+      <h2>2. What Information Is Transmitted</h2>
+      <p>
+        When you navigate to a webpage, the Extension sends <strong>only the URL</strong> of that
+        page to our analysis backend. That is the complete extent of data transmission.
+      </p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data Type</th>
+            <th>Collected?</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Page URL</td>
+            <td class="tag-yes">YES</td>
+            <td>Sent to backend for phishing analysis only</td>
+          </tr>
+          <tr>
+            <td>Page HTML / content</td>
+            <td class="tag-no">NO</td>
+            <td>The backend fetches the page itself; your browser sends no HTML</td>
+          </tr>
+          <tr>
+            <td>Cookies / session tokens</td>
+            <td class="tag-no">NO</td>
+            <td>Never accessed or transmitted</td>
+          </tr>
+          <tr>
+            <td>Browsing history</td>
+            <td class="tag-no">NO</td>
+            <td>Not read or stored</td>
+          </tr>
+          <tr>
+            <td>IP address</td>
+            <td class="tag-no">NO</td>
+            <td>Not logged or stored on the backend</td>
+          </tr>
+          <tr>
+            <td>Name / email / account info</td>
+            <td class="tag-no">NO</td>
+            <td>Extension has no account system</td>
+          </tr>
+          <tr>
+            <td>Scan result (verdict + score)</td>
+            <td class="tag-local">LOCAL ONLY</td>
+            <td>Cached in browser session storage; cleared when tab closes</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 3. How data is used -->
+    <section>
+      <h2>3. How the URL Is Used</h2>
+      <p>The URL you visit is used exclusively to run a phishing detection pipeline:</p>
+      <ul class="body-list">
+        <li>Rule-based analysis of the URL structure and pattern</li>
+        <li>Reputation lookup against Google Safe Browsing and PhishTank databases</li>
+        <li>Server-side content fetch and analysis of the target page</li>
+        <li>Machine learning model inference based on URL-derived features</li>
+      </ul>
+      <p>
+        After analysis, the backend returns a verdict (SAFE, SUSPICIOUS, or PHISHING) and a risk
+        score. The URL is not logged, stored in a database, or used for any other purpose.
+      </p>
+      <div class="highlight green">
+        The backend is a stateless API. It processes the URL and returns a result.
+        No persistent record of your request is kept.
+      </div>
+    </section>
+
+    <!-- 4. Local storage -->
+    <section>
+      <h2>4. Local Data Storage</h2>
+      <p>
+        The Extension stores scan results locally in your browser using
+        <code>chrome.storage.session</code>. This storage:
+      </p>
+      <ul class="body-list">
+        <li>Is scoped to your current browser session only</li>
+        <li>Is cleared automatically when the tab is closed</li>
+        <li>Never leaves your device</li>
+        <li>Contains only: the URL scanned, the verdict, the risk score, and detected flags</li>
+      </ul>
+      <p>No data is written to <code>chrome.storage.local</code> or <code>localStorage</code>.</p>
+    </section>
+
+    <!-- 5. Third-party services -->
+    <section>
+      <h2>5. Third-Party Services</h2>
+      <p>
+        Our backend queries the following external threat intelligence services on your behalf.
+        These services receive the URL being scanned — not your identity or any personal data.
+      </p>
+      <ul class="body-list">
+        <li>
+          <strong>Google Safe Browsing API</strong> — Google's threat database.
+          Governed by <a href="https://policies.google.com/privacy" style="color:#4dd4d4;" target="_blank" rel="noopener">Google's Privacy Policy</a>.
+        </li>
+        <li>
+          <strong>PhishTank</strong> — Community-sourced phishing URL database.
+          Governed by <a href="https://www.phishtank.com/privacy.php" style="color:#4dd4d4;" target="_blank" rel="noopener">PhishTank's Privacy Policy</a>.
+        </li>
+      </ul>
+      <div class="highlight">
+        These API calls originate from our backend server, not your browser.
+        Third-party services do not receive your IP address or any identifying information.
+      </div>
+    </section>
+
+    <!-- 6. Permissions -->
+    <section>
+      <h2>6. Browser Permissions Explained</h2>
+      <p>The Extension requests the following permissions and uses them only as described:</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>Permission</th><th>Why It Is Needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>webNavigation</code></td>
+            <td>To detect when you finish loading a new page so a scan can begin</td>
+          </tr>
+          <tr>
+            <td><code>activeTab</code></td>
+            <td>To read the URL of the current tab for scanning</td>
+          </tr>
+          <tr>
+            <td><code>tabs</code></td>
+            <td>To update the extension badge and clear scan cache when a tab closes</td>
+          </tr>
+          <tr>
+            <td><code>scripting</code></td>
+            <td>To inject the phishing warning banner onto the page if a threat is detected</td>
+          </tr>
+          <tr>
+            <td><code>storage</code></td>
+            <td>To cache the scan result locally so repeat visits are instant</td>
+          </tr>
+          <tr>
+            <td><code>&lt;all_urls&gt;</code></td>
+            <td>To scan any website you visit, not just a pre-approved list</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 7. Children -->
+    <section>
+      <h2>7. Children's Privacy</h2>
+      <p>
+        WebShield.AI does not knowingly collect any personal information from anyone, including
+        children under the age of 13. The Extension contains no account registration, no forms,
+        and no data submission from the user.
+      </p>
+    </section>
+
+    <!-- 8. Changes -->
+    <section>
+      <h2>8. Changes to This Policy</h2>
+      <p>
+        If we make material changes to this Privacy Policy, we will update the "Last updated" date
+        at the top of this page. We encourage you to review this page periodically. Continued use
+        of the Extension after any changes constitutes acceptance of the updated policy.
+      </p>
+    </section>
+
+    <!-- 9. Contact -->
+    <section>
+      <h2>9. Contact</h2>
+      <p>If you have any questions or concerns about this Privacy Policy, please reach out:</p>
+      <div class="contact-card">
+        <p>Questions about your data or this policy?<br />
+        <span style="color:rgba(255,255,255,0.4);font-size:13px;">We'll respond within 48 hours.</span></p>
+        <a class="contact-link" href="mailto:crkz49crkz@gmail.com">Contact Us</a>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <p>&copy; 2026 <span>WebShield.AI</span> &nbsp;·&nbsp; Built by Adhithyan.S &nbsp;·&nbsp; All rights reserved.</p>
+  </footer>
+
+</body>
+</html>
