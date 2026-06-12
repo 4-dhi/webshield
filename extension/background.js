@@ -2,11 +2,20 @@
 // Automatically scans every page the user visits.
 // Results are stored in chrome.storage.session so the popup can read them instantly.
 
-const BACKEND_URL = "http://localhost:8000"; // ← keep in sync with popup.js
+const BACKEND_URL = "https://webshield-6cz7.onrender.com"; // ← keep in sync with popup.js
 const CACHE_TTL_MS = 30 * 60 * 1000;        // reuse result for 30 minutes
 const SCAN_DEBOUNCE_MS = 800;                // wait before scanning (skip fast redirects)
 
 const _debounceTimers = new Map(); // tabId → timer handle
+
+// Silently wake the server when the service worker starts so it's warm
+// before the user navigates to any page.
+fetch(BACKEND_URL, { method: "GET" }).catch(() => {});
+
+// Re-ping every 14 minutes to keep Render free-tier instance alive
+setInterval(() => {
+  fetch(BACKEND_URL, { method: "GET" }).catch(() => {});
+}, 14 * 60 * 1000);
 
 // ── Badge helpers ────────────────────────────────────────────────────────────
 

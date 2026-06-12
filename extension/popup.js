@@ -1,6 +1,6 @@
 // WebShield.AI v2 — Extension popup logic
 // The extension now sends only the URL; the backend fetches and analyses the page itself.
-const BACKEND_URL = "http://localhost:8000"; // ← update after deploying
+const BACKEND_URL = "https://webshield-6cz7.onrender.com"; // ← update after deploying
 
 let currentState = "idle";
 
@@ -150,8 +150,13 @@ function analyzeWebsite() {
     }
 
     const controller = new AbortController();
-    // 30s to handle Render free-tier cold start (no "waking" UI — just waits silently)
     const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    // After 4s with no response, the server is likely cold-starting — tell the user
+    const slowTimer = setTimeout(() => {
+      const s = document.getElementById("statusDisplay");
+      if (s) s.innerHTML = '<div class="analyzing-text"><span>Waking server...</span><div class="spinner"></div></div>';
+    }, 4000);
 
     fetch(BACKEND_URL, {
       method: "POST",
@@ -161,6 +166,7 @@ function analyzeWebsite() {
     })
       .then((response) => {
         clearTimeout(timeoutId);
+        clearTimeout(slowTimer);
         if (!response.ok) {
           throw new Error("Server responded with status: " + response.status);
         }
@@ -194,6 +200,7 @@ function analyzeWebsite() {
       })
       .catch((error) => {
         clearTimeout(timeoutId);
+        clearTimeout(slowTimer);
         const msg =
           error.name === "AbortError"
             ? "Server took too long. Try again in a moment."
