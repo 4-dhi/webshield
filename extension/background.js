@@ -10,11 +10,11 @@ const _debounceTimers = new Map(); // tabId → timer handle
 
 // Silently wake the server when the service worker starts so it's warm
 // before the user navigates to any page.
-fetch(BACKEND_URL, { method: "GET" }).catch(() => {});
+fetch(BACKEND_URL + "/ping", { method: "GET" }).catch(() => {});
 
 // Re-ping every 14 minutes to keep Render free-tier instance alive
 setInterval(() => {
-  fetch(BACKEND_URL, { method: "GET" }).catch(() => {});
+  fetch(BACKEND_URL + "/ping", { method: "GET" }).catch(() => {});
 }, 14 * 60 * 1000);
 
 // ── Badge helpers ────────────────────────────────────────────────────────────
