@@ -129,6 +129,11 @@ def health() -> dict:
     return {"status": "ok", "service": "WebShield.AI", "version": "2.0"}
 
 
+@app.get("/ping")
+def ping() -> dict:
+    return {"status": "ok"}
+
+
 @app.post("/")
 async def scan(req: ScanRequest) -> dict:
     url = req.url.strip()
