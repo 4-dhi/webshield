@@ -129,7 +129,7 @@ def health() -> dict:
     return {"status": "ok", "service": "WebShield.AI", "version": "2.0"}
 
 
-@app.get("/ping")
+@app.api_route("/ping", methods=["GET", "HEAD"])
 def ping() -> dict:
     return {"status": "ok"}
 
