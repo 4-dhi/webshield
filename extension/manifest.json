@@ -22,6 +22,24 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
-  "permissions": ["activeTab", "tabs", "webNavigation", "scripting", "storage"],
-  "host_permissions": ["<all_urls>"]
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "webNavigation",
+    "scripting",
+    "storage",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback",
+    "webRequest"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  }
 }

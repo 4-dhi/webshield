@@ -2,9 +2,11 @@
 // Automatically scans every page the user visits.
 // Results are stored in chrome.storage.session so the popup can read them instantly.
 
+importScripts("adblock.js");
+
 const BACKEND_URL = "https://webshield-6cz7.onrender.com"; // ← keep in sync with popup.js
-const CACHE_TTL_MS = 30 * 60 * 1000;        // reuse result for 30 minutes
-const SCAN_DEBOUNCE_MS = 800;                // wait before scanning (skip fast redirects)
+const CACHE_TTL_MS = 30 * 60 * 1000; // reuse result for 30 minutes
+const SCAN_DEBOUNCE_MS = 800; // wait before scanning (skip fast redirects)
 
 const _debounceTimers = new Map(); // tabId → timer handle
 
@@ -13,19 +15,22 @@ const _debounceTimers = new Map(); // tabId → timer handle
 fetch(BACKEND_URL, { method: "GET" }).catch(() => {});
 
 // Re-ping every 14 minutes to keep Render free-tier instance alive
-setInterval(() => {
-  fetch(BACKEND_URL, { method: "GET" }).catch(() => {});
-}, 14 * 60 * 1000);
+setInterval(
+  () => {
+    fetch(BACKEND_URL, { method: "GET" }).catch(() => {});
+  },
+  14 * 60 * 1000,
+);
 
 // ── Badge helpers ────────────────────────────────────────────────────────────
 
 function setBadge(tabId, state) {
   const cfg = {
-    scanning:   { text: "…",  color: "#6b7280" },
-    safe:       { text: "✓",  color: "#22c55e" },
-    suspicious: { text: "!",  color: "#f59e0b" },
-    phishing:   { text: "✕",  color: "#ef4444" },
-    error:      { text: "?",  color: "#6b7280" },
+    scanning: { text: "…", color: "#6b7280" },
+    safe: { text: "✓", color: "#22c55e" },
+    suspicious: { text: "!", color: "#f59e0b" },
+    phishing: { text: "✕", color: "#ef4444" },
+    error: { text: "?", color: "#6b7280" },
   }[state] || { text: "", color: "#6b7280" };
 
   chrome.action.setBadgeText({ text: cfg.text, tabId });
@@ -44,21 +49,29 @@ async function injectWarningBanner(tabId, score, topFlag) {
         const bar = document.createElement("div");
         bar.id = "webshield-warning";
         bar.style.cssText = [
-          "position:fixed", "top:0", "left:0", "right:0", "z-index:2147483647",
-          "background:#dc2626", "color:#fff", "padding:10px 18px",
+          "position:fixed",
+          "top:0",
+          "left:0",
+          "right:0",
+          "z-index:2147483647",
+          "background:#dc2626",
+          "color:#fff",
+          "padding:10px 18px",
           "font:600 13px/1.4 system-ui,sans-serif",
-          "display:flex", "align-items:center", "justify-content:space-between",
-          "gap:12px", "box-shadow:0 2px 12px rgba(0,0,0,.4)",
+          "display:flex",
+          "align-items:center",
+          "justify-content:space-between",
+          "gap:12px",
+          "box-shadow:0 2px 12px rgba(0,0,0,.4)",
         ].join(";");
 
         const msg = topFlag
           ? `⚠ WebShield.AI: Phishing detected — ${topFlag}`
           : `⚠ WebShield.AI: This site looks like a phishing page (${score}% risk)`;
-
         bar.innerHTML = `
           <span>${msg}</span>
           <span style="display:flex;gap:8px;flex-shrink:0">
-            <button id="ws-leave"
+                     <button id="ws-leave"
               style="background:#fff;color:#dc2626;border:none;padding:5px 12px;
                      border-radius:4px;cursor:pointer;font-weight:700">
               ← Leave site
@@ -68,11 +81,11 @@ async function injectWarningBanner(tabId, score, topFlag) {
                      padding:5px 12px;border-radius:4px;cursor:pointer">
               Dismiss
             </button>
-          </span>`;
+             </span>`;
 
         document.body.prepend(bar);
-        document.getElementById("ws-leave").onclick    = () => history.back();
-        document.getElementById("ws-dismiss").onclick  = () => bar.remove();
+        document.getElementById("ws-leave").onclick = () => history.back();
+        document.getElementById("ws-dismiss").onclick = () => bar.remove();
       },
       args: [score, topFlag],
     });
@@ -89,39 +102,38 @@ async function scanTab(tabId, url) {
   // Return cached result if URL matches and is still fresh
   const stored = await chrome.storage.session.get(cacheKey);
   const cached = stored[cacheKey];
-  if (cached && cached.url === url && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+  if (
+    cached &&
+    cached.url === url &&
+    Date.now() - cached.timestamp < CACHE_TTL_MS
+  ) {
     applyResult(tabId, cached);
     return;
   }
-
   setBadge(tabId, "scanning");
-
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
 
     const resp = await fetch(BACKEND_URL, {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ url }),
-      signal:  controller.signal,
+      body: JSON.stringify({ url }),
+      signal: controller.signal,
     });
     clearTimeout(timeout);
-
     if (!resp.ok) throw new Error("HTTP " + resp.status);
 
-    const data   = await resp.json();
+    const data = await resp.json();
     const result = {
       url,
-      verdict:   data.verdict,
-      score:     data.score,
-      flags:     data.flags || [],
+      verdict: data.verdict,
+      score: data.score,
+      flags: data.flags || [],
       timestamp: Date.now(),
     };
-
     await chrome.storage.session.set({ [cacheKey]: result });
     applyResult(tabId, result);
-
   } catch {
     setBadge(tabId, "error");
   }
@@ -162,8 +174,119 @@ chrome.webNavigation.onCompleted.addListener((details) => {
 // Clear cache and badge when a tab is closed
 chrome.tabs.onRemoved.addListener((tabId) => {
   chrome.storage.session.remove(`scan_${tabId}`);
+  chrome.storage.session.remove(`tab_stats_${tabId}`).catch(() => {});
   if (_debounceTimers.has(tabId)) {
     clearTimeout(_debounceTimers.get(tabId));
     _debounceTimers.delete(tabId);
   }
+});
+
+// ── Ad Blocker Logic ──────────────────────────────────────────────────────────
+const AD_PATTERNS = [
+  "doubleclick.net",
+  "googlesyndication.com",
+  "adservice.google.com",
+  "adnxs.com",
+  "adsrvr.org",
+  "adtech.de",
+  "adform.net",
+  "adroll.com",
+  "outbrain.com",
+  "taboola.com",
+  "criteo.com",
+  "amazon-adsystem.com",
+  "popads.net",
+  "carbonads.net",
+  "buyads.co",
+  "advertising.com",
+  "bidswitch.net",
+  "pubmatic.com",
+  "rubiconproject.com",
+  "openx.net",
+];
+const TRACKER_PATTERNS = [
+  "google-analytics.com",
+  "quantserve.com",
+  "scorecardresearch.com",
+  "hotjar.com",
+  "mixpanel.com",
+  "optimizely.com",
+  "segment.io",
+  "kissmetrics.com",
+  "crazyegg.com",
+  "flurry.com",
+];
+// Initialize ruleset on startup
+chrome.storage.local.get({ adBlockEnabled: true }, (res) => {
+  if (res.adBlockEnabled) {
+    enableAdBlocker();
+  } else {
+    disableAdBlocker();
+  }
+});
+// Watch for toggle changes
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.adBlockEnabled) {
+    if (changes.adBlockEnabled.newValue) {
+      enableAdBlocker();
+    } else {
+      disableAdBlocker();
+    }
+  }
+});
+// Chained promise queue to prevent race conditions during async storage write operations
+let updateQueue = Promise.resolve();
+function incrementCounters(tabId, isAd, isTracker) {
+  updateQueue = updateQueue
+    .then(async () => {
+      const sessionKey = `tab_stats_${tabId}`;
+
+      // 1. Update tab-specific stats
+      let sessionData = await chrome.storage.session.get(sessionKey);
+      let tabStats = sessionData[sessionKey] || { ads: 0, trackers: 0 };
+      if (isAd) tabStats.ads++;
+      if (isTracker) tabStats.trackers++;
+      await chrome.storage.session.set({ [sessionKey]: tabStats });
+      // 2. Update lifetime total stats
+      let localData = await chrome.storage.local.get({
+        totalAds: 0,
+        totalTrackers: 0,
+      });
+      let totalAds = localData.totalAds || 0;
+      let totalTrackers = localData.totalTrackers || 0;
+      if (isAd) totalAds++;
+      if (isTracker) totalTrackers++;
+      await chrome.storage.local.set({ totalAds, totalTrackers });
+    })
+    .catch((err) => console.error("Error updating stats storage:", err));
+}
+
+// Web request listener to observe & count blocked requests (actual block is performed by declarativeNetRequest)
+chrome.webRequest.onBeforeRequest.addListener(
+  (details) => {
+    if (details.url.startsWith("chrome-extension://")) return;
+    chrome.storage.local.get({ adBlockEnabled: true }, (res) => {
+      if (!res.adBlockEnabled) return;
+
+      const urlStr = details.url.toLowerCase();
+      const tabId = details.tabId;
+      if (tabId < 0) return; // Ignore background/system requests not tied to a tab
+
+      const isAd = AD_PATTERNS.some((domain) => urlStr.includes(domain));
+      const isTracker =
+        !isAd && TRACKER_PATTERNS.some((domain) => urlStr.includes(domain));
+
+      if (isAd || isTracker) {
+        incrementCounters(tabId, isAd, isTracker);
+      }
+    });
+  },
+  { urls: ["<all_urls>"] },
+);
+
+// Reset tab-specific stats when a navigation starts on the main frame
+chrome.webNavigation.onBeforeNavigate.addListener((details) => {
+  if (details.frameId !== 0) return; // main frame only
+  const tabId = details.tabId;
+  chrome.storage.session.remove(`tab_stats_${tabId}`).catch(() => {});
 });

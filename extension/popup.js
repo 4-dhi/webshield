@@ -155,7 +155,9 @@ function analyzeWebsite() {
     // After 4s with no response, the server is likely cold-starting — tell the user
     const slowTimer = setTimeout(() => {
       const s = document.getElementById("statusDisplay");
-      if (s) s.innerHTML = '<div class="analyzing-text"><span>Waking server...</span><div class="spinner"></div></div>';
+      if (s)
+        s.innerHTML =
+          '<div class="analyzing-text"><span>Waking server...</span><div class="spinner"></div></div>';
     }, 4000);
 
     fetch(BACKEND_URL, {
@@ -212,7 +214,12 @@ function analyzeWebsite() {
 
 document.addEventListener("DOMContentLoaded", function () {
   setState("idle");
-  document.getElementById("actionButton").addEventListener("click", analyzeWebsite);
+  document
+    .getElementById("actionButton")
+    .addEventListener("click", analyzeWebsite);
+
+  // Initialize page-switching, switch toggles, stats counters
+  initAdBlockerUI();
 
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     const el = document.getElementById("urlDisplay");
@@ -223,7 +230,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const tab = tabs[0];
     if (el) {
-      el.textContent = tab.url.length > 45 ? tab.url.slice(0, 45) + "..." : tab.url;
+      el.textContent =
+        tab.url.length > 45 ? tab.url.slice(0, 45) + "..." : tab.url;
     }
 
     // Show background scanner's cached result instantly — no button click needed
@@ -234,9 +242,139 @@ document.addEventListener("DOMContentLoaded", function () {
       if (cached.verdict === "SAFE")
         setState("safe", "", { score: cached.score, flags: cached.flags });
       else if (cached.verdict === "SUSPICIOUS")
-        setState("suspicious", "", { score: cached.score, flags: cached.flags });
+        setState("suspicious", "", {
+          score: cached.score,
+          flags: cached.flags,
+        });
       else if (cached.verdict === "PHISHING")
         setState("phishing", "", { score: cached.score, flags: cached.flags });
     });
   });
 });
+
+// ── Ad Blocker UI Controller ──────────────────────────────────────────────────
+
+function initAdBlockerUI() {
+  const btnShield = document.getElementById("btn-shield");
+  const btnAdblock = document.getElementById("btn-adblock");
+  const pageShield = document.getElementById("page-shield");
+  const pageAdblock = document.getElementById("page-adblock");
+
+  const adblockToggle = document.getElementById("adblockToggle");
+  const adblockCircle = document.getElementById("adblockCircleContainer");
+  const adblockStatusText = document.getElementById("adblockStatusText");
+  const adblockCenterIcon = document.getElementById("adblockCenterIcon");
+
+  const statAdsPage = document.getElementById("statAdsPage");
+  const statTrackersPage = document.getElementById("statTrackersPage");
+  const statAdsTotal = document.getElementById("statAdsTotal");
+  const statTrackersTotal = document.getElementById("statTrackersTotal");
+
+  let currentTabId = null;
+
+  // 1. Navigation Logic
+  btnShield.addEventListener("click", () => {
+    btnShield.classList.add("active");
+    btnAdblock.classList.remove("active");
+    pageShield.classList.add("active");
+    pageAdblock.classList.remove("active");
+  });
+
+  btnAdblock.addEventListener("click", () => {
+    btnAdblock.classList.add("active");
+    btnShield.classList.remove("active");
+    pageAdblock.classList.add("active");
+    pageShield.classList.remove("active");
+  });
+
+  // 2. Update toggle UI state
+  function updateToggleUI(enabled) {
+    adblockToggle.checked = enabled;
+    if (enabled) {
+      adblockCircle.className = "adblock-circle-container enabled";
+      adblockStatusText.textContent = "Ad Shield Active";
+      adblockCenterIcon.textContent = "🛡️";
+    } else {
+      adblockCircle.className = "adblock-circle-container disabled";
+      adblockStatusText.textContent = "Ad Shield Disabled";
+      adblockCenterIcon.textContent = "🚫";
+    }
+  }
+
+  // 3. Load initial toggle state from local storage
+  chrome.storage.local.get({ adBlockEnabled: true }, (res) => {
+    updateToggleUI(res.adBlockEnabled);
+  });
+
+  // 4. Handle toggle user input
+  adblockToggle.addEventListener("change", (e) => {
+    const isChecked = e.target.checked;
+    if (isChecked) {
+      enableAdBlocker().then(() => updateToggleUI(true));
+    } else {
+      disableAdBlocker().then(() => updateToggleUI(false));
+    }
+  });
+
+  // 5. Statistics loader & observer
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (!tabs || tabs.length === 0) return;
+    currentTabId = tabs[0].id;
+
+    getBlockedAdsCount(currentTabId).then((stats) => {
+      statAdsPage.textContent = stats.pageAds;
+      statTrackersPage.textContent = stats.pageTrackers;
+      statAdsTotal.textContent = stats.totalAds;
+      statTrackersTotal.textContent = stats.totalTrackers;
+    });
+  });
+
+  // 6. Listen for real-time stats updates from background script
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    // Session storage updates (Tab stats)
+    if (areaName === "session" && currentTabId) {
+      const tabStatsKey = `tab_stats_${currentTabId}`;
+      if (changes[tabStatsKey]) {
+        const stats = changes[tabStatsKey].newValue || { ads: 0, trackers: 0 };
+        statAdsPage.textContent = stats.ads || 0;
+        statTrackersPage.textContent = stats.trackers || 0;
+      } else {
+        // If key was removed (reset), clear the active page counts
+        statAdsPage.textContent = 0;
+        statTrackersPage.textContent = 0;
+      }
+    }
+
+    // Local storage updates (Totals and Toggle switch syncing)
+    if (areaName === "local") {
+      if (changes.totalAds) {
+        statAdsTotal.textContent =
+          changes.totalAds.newValue !== undefined
+            ? changes.totalAds.newValue
+            : 0;
+      }
+      if (changes.totalTrackers) {
+        statTrackersTotal.textContent =
+          changes.totalTrackers.newValue !== undefined
+            ? changes.totalTrackers.newValue
+            : 0;
+      }
+      if (changes.adBlockEnabled) {
+        updateToggleUI(changes.adBlockEnabled.newValue);
+      }
+    }
+  });
+
+  // 7. Handle stats reset
+  const btnResetStats = document.getElementById("btnResetStats");
+  if (btnResetStats) {
+    btnResetStats.addEventListener("click", () => {
+      resetBlockedAdsCount(currentTabId).then(() => {
+        statAdsPage.textContent = 0;
+        statTrackersPage.textContent = 0;
+        statAdsTotal.textContent = 0;
+        statTrackersTotal.textContent = 0;
+      });
+    });
+  }
+}
