@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "WebShield.AI",
   "description": "Automatically detects phishing websites as you browse.",
-  "version": "2.1",
+  "version": "2.2",
   "background": {
     "service_worker": "background.js"
   },
@@ -33,6 +33,14 @@
     "webRequest"
   ],
   "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["cosmetic.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
   "declarative_net_request": {
     "rule_resources": [
       {

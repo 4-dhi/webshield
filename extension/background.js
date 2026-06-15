@@ -182,10 +182,15 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 });
 
 // ── Ad Blocker Logic ──────────────────────────────────────────────────────────
+
 const AD_PATTERNS = [
   "doubleclick.net",
   "googlesyndication.com",
+  "googleadservices.com",
+  "googletagservices.com",
   "adservice.google.com",
+  "pagead2.googlesyndication.com",
+  "securepubads.g.doubleclick.net",
   "adnxs.com",
   "adsrvr.org",
   "adtech.de",
@@ -194,60 +199,199 @@ const AD_PATTERNS = [
   "outbrain.com",
   "taboola.com",
   "criteo.com",
+  "criteo.net",
   "amazon-adsystem.com",
+  "amazonadsystem.com",
   "popads.net",
+  "popcash.net",
   "carbonads.net",
   "buyads.co",
+  "buysellads.com",
   "advertising.com",
   "bidswitch.net",
   "pubmatic.com",
   "rubiconproject.com",
   "openx.net",
+  "casalemedia.com",
+  "33across.com",
+  "smartadserver.com",
+  "media.net",
+  "moatads.com",
+  "doubleverify.com",
+  "adsafeprotected.com",
+  "serving-sys.com",
+  "2mdn.net",
+  "exoclick.com",
+  "exosrv.com",
+  "juicyads.com",
+  "mgid.com",
+  "revcontent.com",
+  "adcash.com",
+  "propellerads.com",
+  "adsterra.com",
+  "facebook.com/tr",
+  "static.ads-twitter.com",
+  "ads.linkedin.com",
+  "yieldmo.com",
+  "lijit.com",
+  "sharethrough.com",
+  "triplelift.com",
+  "teads.tv",
+  "spotxchange.com",
+  "spotx.tv",
+  "springserve.com",
+  "contextweb.com",
+  "imrworldwide.com",
+  "mfadsrvr.com",
+  "admanmedia.com",
+  "/ads.",
+  "/ad.",
+  "/advert",
+  "/banner",
+  "/popup",
+  "/interstitial",
+  "/pagead/",
+  "/pubads",
+  "/prebid",
 ];
+
 const TRACKER_PATTERNS = [
   "google-analytics.com",
+  "googleanalytics.com",
+  "analytics.google.com",
+  "googletagmanager.com",
+  "gtag/js",
   "quantserve.com",
+  "quantcount.com",
   "scorecardresearch.com",
   "hotjar.com",
+  "hotjar.io",
   "mixpanel.com",
+  "cdn.mxpnl.com",
   "optimizely.com",
   "segment.io",
+  "segment.com",
+  "cdn.segment.com",
   "kissmetrics.com",
   "crazyegg.com",
   "flurry.com",
+  "fullstory.com",
+  "mouseflow.com",
+  "amplitude.com",
+  "heap.io",
+  "heapanalytics.com",
+  "chartbeat.com",
+  "chartbeat.net",
+  "comscore.com",
+  "adobedtm.com",
+  "demdex.net",
+  "bluekai.com",
+  "tapad.com",
+  "mathtag.com",
+  "lotame.com",
+  "krxd.net",
+  "branch.io",
+  "appsflyer.com",
+  "adjust.com",
+  "connect.facebook.net",
+  "pixel.facebook.com",
+  "fbevents.js",
+  "bat.bing.com",
+  "clarity.ms",
+  "omtrdc.net",
+  "2o7.net",
+  "everesttech.net",
+  "rlcdn.com",
+  "agkn.com",
+  "turn.com",
+  "simpli.fi",
+  "sitescout.com",
+  "bidr.io",
+  "crwdcntrl.net",
+  "eyeota.net",
+  "/analytics",
+  "/tracking",
+  "/tracker",
+  "/beacon",
+  "/collect?",
+  "/ga.js",
 ];
+
+let adBlockDebug = false;
+let dnrDebugActive = false;
+const _countedRequestIds = new Set();
+const COUNTED_REQUEST_TTL = 60000;
+
+function adLog() {
+  if (adBlockDebug) console.log("[WebShield AdBlock]", ...arguments);
+}
+
+function classifyUrl(urlStr) {
+  const isAd = AD_PATTERNS.some((p) => urlStr.includes(p));
+  const isTracker = !isAd && TRACKER_PATTERNS.some((p) => urlStr.includes(p));
+  return { isAd, isTracker };
+}
+
+function markRequestCounted(requestId) {
+  if (requestId === undefined) return false;
+  if (_countedRequestIds.has(requestId)) return true;
+  _countedRequestIds.add(requestId);
+  setTimeout(() => _countedRequestIds.delete(requestId), COUNTED_REQUEST_TTL);
+  return false;
+}
+
 // Initialize ruleset on startup
-chrome.storage.local.get({ adBlockEnabled: true }, (res) => {
+chrome.storage.local.get({ adBlockEnabled: true, adBlockDebug: false }, (res) => {
+  adBlockDebug = !!res.adBlockDebug;
   if (res.adBlockEnabled) {
-    enableAdBlocker();
+    enableAdBlocker().then(() => logDnrStatus());
   } else {
     disableAdBlocker();
   }
 });
-// Watch for toggle changes
+
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes.adBlockEnabled) {
-    if (changes.adBlockEnabled.newValue) {
-      enableAdBlocker();
-    } else {
-      disableAdBlocker();
+  if (area === "local") {
+    if (changes.adBlockEnabled) {
+      if (changes.adBlockEnabled.newValue) {
+        enableAdBlocker().then(() => logDnrStatus());
+      } else {
+        disableAdBlocker();
+      }
+    }
+    if (changes.adBlockDebug) {
+      adBlockDebug = !!changes.adBlockDebug.newValue;
     }
   }
 });
+
+async function logDnrStatus() {
+  try {
+    const enabled = await chrome.declarativeNetRequest.getEnabledRulesets();
+    adLog("DNR enabled rulesets:", enabled);
+    if (chrome.declarativeNetRequest.getAvailableStaticRuleCount) {
+      const available = await chrome.declarativeNetRequest.getAvailableStaticRuleCount();
+      adLog("DNR available static rule slots:", available);
+    }
+  } catch (err) {
+    adLog("DNR diagnostics error:", err.message);
+  }
+}
+
 // Chained promise queue to prevent race conditions during async storage write operations
 let updateQueue = Promise.resolve();
-function incrementCounters(tabId, isAd, isTracker) {
+
+function incrementCounters(tabId, isAd, isTracker, source, url) {
   updateQueue = updateQueue
     .then(async () => {
       const sessionKey = `tab_stats_${tabId}`;
 
-      // 1. Update tab-specific stats
       let sessionData = await chrome.storage.session.get(sessionKey);
       let tabStats = sessionData[sessionKey] || { ads: 0, trackers: 0 };
       if (isAd) tabStats.ads++;
       if (isTracker) tabStats.trackers++;
       await chrome.storage.session.set({ [sessionKey]: tabStats });
-      // 2. Update lifetime total stats
+
       let localData = await chrome.storage.local.get({
         totalAds: 0,
         totalTrackers: 0,
@@ -257,27 +401,37 @@ function incrementCounters(tabId, isAd, isTracker) {
       if (isAd) totalAds++;
       if (isTracker) totalTrackers++;
       await chrome.storage.local.set({ totalAds, totalTrackers });
+
+      adLog(
+        "Blocked",
+        isAd ? "ad" : "tracker",
+        `via ${source}`,
+        url ? url.slice(0, 120) : "",
+        `tab ${tabId}: ${tabStats.ads}a/${tabStats.trackers}t`,
+      );
     })
-    .catch((err) => console.error("Error updating stats storage:", err));
+    .catch((err) => console.error("[WebShield] Error updating stats storage:", err));
 }
 
-// Web request listener to observe & count blocked requests (actual block is performed by declarativeNetRequest)
+// Fallback counter: webRequest when DNR debug listener is unavailable
 chrome.webRequest.onBeforeRequest.addListener(
   (details) => {
+    if (dnrDebugActive) return;
     if (details.url.startsWith("chrome-extension://")) return;
+
     chrome.storage.local.get({ adBlockEnabled: true }, (res) => {
       if (!res.adBlockEnabled) return;
 
       const urlStr = details.url.toLowerCase();
       const tabId = details.tabId;
-      if (tabId < 0) return; // Ignore background/system requests not tied to a tab
+      if (tabId < 0) return;
 
-      const isAd = AD_PATTERNS.some((domain) => urlStr.includes(domain));
-      const isTracker =
-        !isAd && TRACKER_PATTERNS.some((domain) => urlStr.includes(domain));
+      if (markRequestCounted(details.requestId)) return;
 
+      const { isAd, isTracker } = classifyUrl(urlStr);
       if (isAd || isTracker) {
-        incrementCounters(tabId, isAd, isTracker);
+        incrementCounters(tabId, isAd, isTracker, "webRequest", urlStr);
+        refreshBadgeCount(tabId);
       }
     });
   },
@@ -286,7 +440,91 @@ chrome.webRequest.onBeforeRequest.addListener(
 
 // Reset tab-specific stats when a navigation starts on the main frame
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-  if (details.frameId !== 0) return; // main frame only
+  if (details.frameId !== 0) return;
   const tabId = details.tabId;
   chrome.storage.session.remove(`tab_stats_${tabId}`).catch(() => {});
 });
+
+// DNR rule-match tracking (exact counts in developer/unpacked mode)
+if (
+  chrome.declarativeNetRequest &&
+  chrome.declarativeNetRequest.onRuleMatchedDebug &&
+  typeof chrome.declarativeNetRequest.onRuleMatchedDebug.addListener === "function"
+) {
+  dnrDebugActive = true;
+  chrome.declarativeNetRequest.onRuleMatchedDebug.addListener((info) => {
+    const tabId = info.request && info.request.tabId;
+    if (tabId === undefined || tabId < 0) return;
+
+    const requestId = info.request.requestId;
+    if (markRequestCounted(requestId)) return;
+
+    const urlStr = (info.request.url || "").toLowerCase();
+    const { isAd, isTracker } = classifyUrl(urlStr);
+    incrementCounters(tabId, isAd || !isTracker, isTracker, "DNR", urlStr);
+    refreshBadgeCount(tabId);
+  });
+  adLog("DNR onRuleMatchedDebug listener active");
+}
+
+// Cosmetic filtering + diagnostics message handler
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!message || !message.action) return false;
+
+  if (message.action === "cosmeticHide") {
+    const tabId = sender.tab && sender.tab.id;
+    if (tabId !== undefined && tabId >= 0) {
+      chrome.storage.local.get({ adBlockEnabled: true }, (res) => {
+        if (!res.adBlockEnabled) return;
+        incrementCounters(tabId, true, false, "cosmetic", message.tag || "");
+        refreshBadgeCount(tabId);
+      });
+    }
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  if (message.action === "getDnrDiagnostics") {
+    getDnrDiagnostics().then(sendResponse);
+    return true;
+  }
+
+  if (message.action === "setAdBlockDebug") {
+    setAdBlockDebug(message.enabled).then(() => {
+      adBlockDebug = !!message.enabled;
+      sendResponse({ ok: true });
+    });
+    return true;
+  }
+
+  return false;
+});
+
+// ── Badge: show blocked-ad count for the active tab ───────────────────────────
+async function refreshBadgeCount(tabId) {
+  try {
+    const sessionKey = `tab_stats_${tabId}`;
+    const sessionData = await chrome.storage.session.get(sessionKey);
+    const stats = sessionData[sessionKey] || { ads: 0, trackers: 0 };
+    const blocked = (stats.ads || 0) + (stats.trackers || 0);
+
+    const scanData = await chrome.storage.session.get(`scan_${tabId}`);
+    const cached = scanData[`scan_${tabId}`];
+    if (cached && (cached.verdict === "PHISHING" || cached.verdict === "SUSPICIOUS")) {
+      return;
+    }
+
+    chrome.storage.local.get({ adBlockEnabled: true }, (res) => {
+      if (!res.adBlockEnabled) return;
+      if (blocked > 0) {
+        chrome.action.setBadgeText({
+          text: blocked > 999 ? "999+" : String(blocked),
+          tabId,
+        });
+        chrome.action.setBadgeBackgroundColor({ color: "#22c55e", tabId });
+      }
+    });
+  } catch {
+    // tab may have closed
+  }
+}

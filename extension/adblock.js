@@ -9,7 +9,7 @@ function enableAdBlocker() {
         enableRulesetIds: ["ruleset_1"],
       });
     })
-    .catch((err) => console.error("Error enabling ad blocker:", err));
+    .catch((err) => console.error("[WebShield] Error enabling ad blocker:", err));
 }
 
 function disableAdBlocker() {
@@ -20,7 +20,7 @@ function disableAdBlocker() {
         disableRulesetIds: ["ruleset_1"],
       });
     })
-    .catch((err) => console.error("Error disabling ad blocker:", err));
+    .catch((err) => console.error("[WebShield] Error disabling ad blocker:", err));
 }
 
 function getBlockedAdsCount(tabId, callback) {
@@ -59,6 +59,7 @@ function getBlockedAdsCount(tabId, callback) {
   }
   return promise;
 }
+
 function resetBlockedAdsCount(tabId, callback) {
   if (typeof tabId === "function") {
     callback = tabId;
@@ -70,7 +71,6 @@ function resetBlockedAdsCount(tabId, callback) {
     if (tabId) {
       await chrome.storage.session.remove(`tab_stats_${tabId}`);
     } else {
-      // If tabId not specified, clean up all session tab stats
       const sessionData = await chrome.storage.session.get(null);
       const keysToRemove = Object.keys(sessionData).filter((key) =>
         key.startsWith("tab_stats_"),
@@ -85,4 +85,26 @@ function resetBlockedAdsCount(tabId, callback) {
     promise.then(callback);
   }
   return promise;
+}
+
+function getDnrDiagnostics() {
+  return Promise.all([
+    chrome.declarativeNetRequest.getEnabledRulesets(),
+    chrome.declarativeNetRequest.getAvailableStaticRuleCount
+      ? chrome.declarativeNetRequest.getAvailableStaticRuleCount()
+      : Promise.resolve(null),
+    chrome.declarativeNetRequest.getMatchedRules
+      ? chrome.declarativeNetRequest.getMatchedRules({ minTimeStamp: 0 })
+      : Promise.resolve({ rulesMatchedInfo: [] }),
+  ]).then(([enabledRulesets, availableCount, matchedInfo]) => ({
+    enabledRulesets,
+    availableStaticRuleCount: availableCount,
+    matchedRulesCount: matchedInfo.rulesMatchedInfo
+      ? matchedInfo.rulesMatchedInfo.length
+      : 0,
+  }));
+}
+
+function setAdBlockDebug(enabled) {
+  return chrome.storage.local.set({ adBlockDebug: !!enabled });
 }
