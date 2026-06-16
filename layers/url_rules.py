@@ -181,7 +181,7 @@ def check_url(url: str) -> dict:
 
         # 17. Tunnel / temporary hosting service
         if apex_domain in TUNNEL_SERVICES:
-            score += 70
+            score += 100
             flags.append(f"Hosted on a temporary tunnel service ({apex_domain})")
             # Login page on a tunnel service is a strong phishing signal
             if any(path == lp or path.startswith(lp + "/") for lp in _LOGIN_PATHS):
