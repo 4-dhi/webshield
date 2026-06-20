@@ -265,6 +265,9 @@ function initAdBlockerUI() {
   const adblockStatusText = document.getElementById("adblockStatusText");
   const adblockCenterIcon = document.getElementById("adblockCenterIcon");
 
+  const youtubeAdToggle = document.getElementById("youtubeAdToggle");
+  const youtubeAdStatusText = document.getElementById("youtubeAdStatusText");
+
   const statAdsPage = document.getElementById("statAdsPage");
   const statTrackersPage = document.getElementById("statTrackersPage");
   const statAdsTotal = document.getElementById("statAdsTotal");
@@ -306,6 +309,16 @@ function initAdBlockerUI() {
     updateToggleUI(res.adBlockEnabled);
   });
 
+  // 3.1 Load YouTube Ads toggle state from local storage (default: false)
+  chrome.storage.local.get({ youtubeAdBlockEnabled: false }, (res) => {
+    youtubeAdToggle.checked = res.youtubeAdBlockEnabled;
+    if (res.youtubeAdBlockEnabled) {
+      youtubeAdStatusText.textContent = "YouTube Ads Enabled";
+    } else {
+      youtubeAdStatusText.textContent = "YouTube Ads Disabled";
+    }
+  });
+
   // 4. Handle toggle user input
   adblockToggle.addEventListener("change", (e) => {
     const isChecked = e.target.checked;
@@ -314,6 +327,24 @@ function initAdBlockerUI() {
     } else {
       disableAdBlocker().then(() => updateToggleUI(false));
     }
+  });
+
+  // 4.1 Handle YouTube Ads toggle user input
+  youtubeAdToggle.addEventListener("change", (e) => {
+    const isChecked = e.target.checked;
+    chrome.storage.local.set({ youtubeAdBlockEnabled: isChecked }, () => {
+      if (isChecked) {
+        youtubeAdStatusText.textContent = "YouTube Ads Enabled";
+        if (typeof enableYoutubeRules === 'function') {
+          enableYoutubeRules();
+        }
+      } else {
+        youtubeAdStatusText.textContent = "YouTube Ads Disabled";
+        if (typeof disableYoutubeRules === 'function') {
+          disableYoutubeRules();
+        }
+      }
+    });
   });
 
   // 5. Statistics loader & observer
@@ -361,6 +392,14 @@ function initAdBlockerUI() {
       }
       if (changes.adBlockEnabled) {
         updateToggleUI(changes.adBlockEnabled.newValue);
+      }
+      if (changes.youtubeAdBlockEnabled) {
+        youtubeAdToggle.checked = changes.youtubeAdBlockEnabled.newValue;
+        if (changes.youtubeAdBlockEnabled.newValue) {
+          youtubeAdStatusText.textContent = "YouTube Ads Enabled";
+        } else {
+          youtubeAdStatusText.textContent = "YouTube Ads Disabled";
+        }
       }
     }
   });

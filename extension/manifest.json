@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "WebShield.AI",
-  "description": "Automatically detects phishing websites as you browse.",
-  "version": "2.2",
+  "description": "Enterprise-grade ad blocker with phishing detection, tracker blocking, and privacy protection.",
+  "version": "3.0.0",
   "background": {
     "service_worker": "background.js"
   },
@@ -36,7 +36,12 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["cosmetic.js"],
+      "js": [
+        "content.js",
+        "cosmetic.js",
+        "youtube.js",
+        "antiadblock.js"
+      ],
       "run_at": "document_start",
       "all_frames": true
     }
@@ -47,7 +52,28 @@
         "id": "ruleset_1",
         "enabled": true,
         "path": "rules.json"
+      },
+      {
+        "id": "ruleset_platform",
+        "enabled": true,
+        "path": "rules-platform.json"
+      },
+      {
+        "id": "ruleset_security",
+        "enabled": true,
+        "path": "rules-security.json"
+      },
+      {
+        "id": "ruleset_youtube",
+        "enabled": false,
+        "path": "rules-youtube.json"
       }
     ]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "webshield-ai@webshield.ai",
+      "strict_min_version": "109.0"
+    }
   }
 }

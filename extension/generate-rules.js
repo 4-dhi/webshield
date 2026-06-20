@@ -13,7 +13,9 @@ const https = require("https");
 const http = require("http");
 
 const OUTPUT = path.join(__dirname, "rules.json");
-const MAX_RULES = 28000; // Chrome MV3 static rule limit is 30,000
+const OUTPUT_PLATFORM = path.join(__dirname, "rules-platform.json");
+const OUTPUT_SECURITY = path.join(__dirname, "rules-security.json");
+const MAX_RULES = 28000;
 
 const RESOURCE_TYPES = [
   "script",
@@ -360,6 +362,21 @@ async function main() {
   fs.writeFileSync(OUTPUT, JSON.stringify(rules, null, 2));
   const sizeKB = Math.round(fs.statSync(OUTPUT).size / 1024);
   console.log(`\nGenerated ${rules.length} rules → ${OUTPUT} (${sizeKB} KB)`);
+
+  // Platform rules (YouTube, Twitch, Social)
+  try {
+    const platformRules = require("./rules-platform-data.js");
+    fs.writeFileSync(OUTPUT_PLATFORM, JSON.stringify(platformRules, null, 2));
+    console.log(`Generated ${platformRules.length} platform rules → ${OUTPUT_PLATFORM}`);
+  } catch (err) {
+    console.warn("Platform rules skipped:", err.message);
+  }
+
+  // Security rules (miners, fingerprinting) — keep bundled file if present
+  if (fs.existsSync(OUTPUT_SECURITY)) {
+    const sec = JSON.parse(fs.readFileSync(OUTPUT_SECURITY, "utf8"));
+    console.log(`Security rules: ${sec.length} (unchanged) → ${OUTPUT_SECURITY}`);
+  }
 }
 
 main().catch((err) => {

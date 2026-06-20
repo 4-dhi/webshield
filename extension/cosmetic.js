@@ -130,6 +130,35 @@
     '[id*="cookie-notice"][class*="ad"]',
     '[class*="gdpr"][class*="ad"]',
     '[class*="consent"][class*="overlay"][class*="ad"]',
+    // Facebook / Instagram sponsored
+    '[data-pagelet*="FeedUnit"][data-ad-preview]',
+    'div[aria-label*="Sponsored" i]',
+    'div[aria-label*="Paid partnership" i]',
+    'article[data-testid="tweet"] [data-testid="placementTracking"]',
+    // Twitter/X promoted
+    '[data-testid="tweet"] [data-testid="promotedIndicator"]',
+    '[data-testid="placementTracking"]',
+    // Reddit promoted
+    'shreddit-ad-post',
+    '[data-testid="promoted-post"]',
+    '.promotedlink',
+    'div[data-adclicklocation]',
+    // LinkedIn sponsored
+    '.feed-shared-update-v2--is-sponsored',
+    '.ad-banner-container',
+    '.sponsored-update-v2',
+    // Twitch ads
+    '.video-player__overlay--ad',
+    '.player-ad-overlay',
+    '[data-a-target="player-ad-overlay"]',
+    '.top-nav__prime',
+    '.persistent-player',
+    '[class*="stream-display-ad"]',
+    // YouTube (feed-level; player handled by youtube.js)
+    '.ytd-promoted-video-renderer',
+    '.ytd-display-ad-renderer',
+    '.ytd-ad-slot-renderer',
+    '#masthead-ad',
   ];
 
   const GENERIC_SELECTORS = [
@@ -377,7 +406,12 @@
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       pendingScan = false;
-      runFullScan(document);
+      // Batch DOM ops in rAF to minimize layout thrashing
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => runFullScan(document));
+      } else {
+        runFullScan(document);
+      }
     }, 120);
   }
 

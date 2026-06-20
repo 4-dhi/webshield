@@ -1,0 +1,14 @@
+{
+  "name": "webshield-ai",
+  "version": "3.0.0",
+  "private": true,
+  "description": "WebShield.AI — Enterprise-grade Chrome MV3 ad blocker",
+  "scripts": {
+    "test": "node --test tests/**/*.test.js",
+    "benchmark": "node benchmarks/run.js",
+    "generate-rules": "node extension/generate-rules.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
