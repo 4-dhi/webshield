@@ -31,10 +31,35 @@ _LEGIT_EMBEDS = {
     "facebook.com", "recaptcha.net", "maps.googleapis.com",
 }
 
+# \x and \u00 are omitted — they appear in normal minified JS and produce
+# too many false positives on legitimate sites (Google, CDNs, etc.).
 _OBFUSCATION_PATTERNS = [
     "eval(", "unescape(", "String.fromCharCode(", "document.write(unescape",
-    "atob(", "\\x", "\\u00",
+    "atob(",
 ]
+
+# Groups of domains owned by the same organisation.
+# A redirect between members of the same group is not penalised.
+_TRUSTED_FAMILIES: list[set[str]] = [
+    {"google.com", "google",    "youtube.com", "googleapis.com",
+     "gstatic.com", "ggpht.com", "googleusercontent.com"},
+    {"microsoft.com", "live.com", "outlook.com",
+     "microsoftonline.com", "office.com", "azure.com"},
+    {"apple.com",   "icloud.com"},
+    {"amazon.com",  "amazonaws.com", "awsstatic.com"},
+    {"facebook.com", "instagram.com", "meta.com", "fbcdn.net"},
+    {"twitter.com", "x.com", "twimg.com"},
+]
+
+
+def _same_org(a: str, b: str) -> bool:
+    """Return True if both domains belong to the same trusted organisation."""
+    for family in _TRUSTED_FAMILIES:
+        in_a = any(a == d or a.endswith("." + d) for d in family)
+        in_b = any(b == d or b.endswith("." + d) for d in family)
+        if in_a and in_b:
+            return True
+    return False
 
 TUNNEL_SERVICES = {
     "serveo.net", "ngrok.io", "ngrok-free.app", "lhr.life",
@@ -94,8 +119,9 @@ async def fetch_and_analyze(url: str) -> dict:
         # 1. Redirect to a completely different domain
         if orig_domain and final_domain and orig_domain != final_domain:
             if not final_domain.endswith("." + orig_domain) and not orig_domain.endswith("." + final_domain):
-                score += 25
-                flags.append(f"Redirects from {orig_domain} → {final_domain}")
+                if not _same_org(orig_domain, final_domain):
+                    score += 25
+                    flags.append(f"Redirects from {orig_domain} → {final_domain}")
 
         # 2. Form submitting credentials to an external domain
         for form in soup.find_all("form"):
@@ -180,11 +206,13 @@ async def fetch_and_analyze(url: str) -> dict:
             flags.append("Login form with no privacy policy or contact links")
 
         # 10. Meta-refresh redirect to another URL
+        # Score reduced to 10 — meta-refresh alone is a weak signal;
+        # legitimate sharing/mapping services (e.g. Google Maps share) use it routinely.
         meta_refresh = soup.find("meta", attrs={"http-equiv": re.compile(r"refresh", re.I)})
         if meta_refresh:
             content = meta_refresh.get("content", "")
             if "url=" in content.lower():
-                score += 20
+                score += 10
                 flags.append("Meta-refresh redirect found (auto-redirects to another page)")
 
     except Exception:
